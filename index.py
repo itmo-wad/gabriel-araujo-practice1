@@ -27,16 +27,20 @@ def checkPassword(username, password):
             return True
     return False
 
-def allowed_file(filename):
+def allowedFile(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def getLoggedUsername():
+    if 'logged' in session:
+        user = db.users.find_one(ObjectId(session['logged']))
+        if user:
+            return user['username']
+        session.pop('logged', None)
+    return ''
 
 @app.route('/')
 def home():
-    username = ''
-    if 'logged' in session:
-        username = db.users.find_one(ObjectId(session['logged']))['username']
-    return render_template("home.html", username=username)
+    return render_template("home.html", username=getLoggedUsername())
 
 @app.route('/signup', methods=["GET", "POST"])
 def signup():
@@ -70,7 +74,7 @@ def login():
 @app.route('/myPage')
 def myPage():
     if 'logged' in session:
-        return render_template("myPage.html", username=db.users.find_one(ObjectId(session['logged']))['username'])
+        return render_template("myPage.html", username=getLoggedUsername())
     return redirect(url_for('login'))
 
 @app.route('/logout')
@@ -80,7 +84,7 @@ def logout():
     return redirect('/')
 
 @app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
+def uploadFile():
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file part', 'danger')
@@ -91,21 +95,21 @@ def upload_file():
             flash('No selected file', 'danger')
             return redirect(request.url)
             
-        if not allowed_file(file.filename):
+        if not allowedFile(file.filename):
             flash('Invalid file extension', 'danger')
             return redirect(request.url)
             
-        if file and allowed_file(file.filename):
+        if file and allowedFile(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             flash('Successfully saved', 'success')
-            return redirect(url_for('uploaded_file', filename=filename))
+            return redirect(url_for('uploadedFile', filename=filename))
   
     return render_template("upload.html")
     
        
 @app.route('/uploads/<filename>')
-def uploaded_file(filename):
+def uploadedFile(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
@@ -117,4 +121,4 @@ if __name__ == '__main__':
 
     db.users.insert_one({"username": "user", "password": generate_password_hash('123')})
 
-    app.run(host='localhost', port=8000, debug=True)
+    app.run(host='localhost', port=5000, debug=True)
