@@ -73,8 +73,9 @@ def login():
 
 @app.route('/myPage')
 def myPage():
-    if 'logged' in session:
-        return render_template("myPage.html", username=getLoggedUsername())
+    username = getLoggedUsername()
+    if username != '':
+        return render_template("myPage.html", username=username)
     return redirect(url_for('login'))
 
 @app.route('/logout')
