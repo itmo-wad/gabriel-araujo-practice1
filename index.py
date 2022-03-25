@@ -33,7 +33,10 @@ def allowed_file(filename):
 
 @app.route('/')
 def home():
-    return render_template("home.html")
+    username = ''
+    if 'logged' in session:
+        username = db.users.find_one(ObjectId(session['logged']))['username']
+    return render_template("home.html", username=username)
 
 @app.route('/signup', methods=["GET", "POST"])
 def signup():
@@ -42,9 +45,15 @@ def signup():
     else:
         username = request.form.get("username")
         password = request.form.get("password")
+        if username == '':
+            flash('Invalid Username', 'danger')
+            return redirect(request.url)
+        if password == '':
+            flash('Invalid Password', 'danger')
+            return redirect(request.url)
         db.users.insert_one({"username": username, "password": generate_password_hash(password)})
         print(f"{username} - {password} SALVO")
-        return redirect('/')
+        return redirect('/login')
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
@@ -54,11 +63,9 @@ def login():
         username = request.form.get("username")
         password = request.form.get("password")
         if checkPassword(username, password):
-            user = db.users.find_one(ObjectId(session['logged']))
-            if user:
-                print(user['username'])
             return redirect(url_for('myPage'))
-        return False
+        flash('Login Error', 'danger')
+        return redirect(request.url)
 
 @app.route('/myPage')
 def myPage():
